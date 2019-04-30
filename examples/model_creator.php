@@ -51,7 +51,7 @@ $required_n= [
 $options = getopt($short_options, $long_options);
 var_dump($options);
 
-if(!checkOneInArray($required_n, $options) || !checkOneInArray($required_t, $options)){
+if(!checkOneInArray($required_n, array_keys($options)) || !checkOneInArray($required_t, array_keys($options))){
     echo "Необходимо указать имя таблицы и пространство имён для будующей модели!!!\n";
     exit(1);
 }
