@@ -11,7 +11,7 @@ class ModelCreator{
     protected $db_name = "main"; 
     protected $table_name = "";
     protected $model_name = "";
-
+    protected $model_namespace = "";
 
     public function setDbName($db_name){
         $this->db_name = $db_name;
@@ -21,6 +21,9 @@ class ModelCreator{
         $this->model_name = $model_name;
     }
 
+    public function setModelNamespace($model_namespace){
+        $this->model_namespace = $model_namespace;
+    }
     public function initDb(){
         $db_config = "db.".$this->db_name;
 
@@ -41,10 +44,12 @@ class ModelCreator{
         $query_builder = new QueryBuilder();
 
         $query_builder->buildSelect("INFORMATION_SCHEMA.COLUMNS", "COLUMN_NAME, data_type");
-        $query_builder->addWhere(['TABLE_NAME']);
+        
 
         $values = ['TABLE_NAME' =>  $this->table_name];
-
+        
+        $query_builder->addWhere($values);
+        
         $query = $query_builder->getQuery();
 
         $result = $this->db->mainQuery($query, $values);
@@ -53,7 +58,7 @@ class ModelCreator{
         
         $model_template = str_replace('{{table}}', $this->table_name, $model_template);
         $model_template = str_replace('{{db_name}}', $this->db_name, $model_template);
-        
+        $model_template = str_replace('{{namespace}}', $this->model_namespace, $model_template);
         $model_name = str_replace("_", "",ucwords($this->table_name, "_"));
         if($this->model_name != ""){
             $model_name = $this->model_name;
@@ -72,9 +77,10 @@ class ModelCreator{
 
         $model_template = str_replace('{{fields}}', $fields, $model_template);
         $model_template = str_replace('{{table_scheme}}', $scheme, $model_template);
-        $filename = __DIR__."/$model_name.php";
+        $model_folder = "./".str_replace('\\', DIRECTORY_SEPARATOR, $this->model_namespace);
+        $filename = $model_folder."/$model_name.php";
         file_put_contents($filename, $model_template);
-        echo $model_template;
+        // echo $model_template;
 
         echo "Модель для таблицы \n\t`$this->table_name`\nСгенерирована в \n\t`$filename`\n";
         // print_r($result);
