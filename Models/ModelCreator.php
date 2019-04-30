@@ -14,7 +14,11 @@ class ModelCreator{
     protected $model_namespace = "";
 
     public function setDbName($db_name){
-        $this->db_name = $db_name;
+        if ($db_name != "") {
+            $this->db_name = $db_name;
+        } else {
+            $this->db_name = "main";
+        }
     }
 
     public function setModelName($model_name){
