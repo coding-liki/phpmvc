@@ -99,7 +99,7 @@ class Router{
         $first_match = $this->checkRoutes();
 
         if(empty($first_match)){
-            $Ctrl = new Controllers\Error404;
+            $Ctrl = new \Controllers\Error404;
         } else {
             $this->checkMiddlewares($first_match);
             

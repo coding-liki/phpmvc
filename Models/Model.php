@@ -17,7 +17,7 @@ class Model implements \ArrayAccess{
     protected $order_by = [];
 
     public $table_index = "id";
-
+    public $types_unmanaged = false;
     public function offsetExists($name) {
         return array_key_exists($name, $this->table_fields);
     }
@@ -78,9 +78,12 @@ class Model implements \ArrayAccess{
         $query = $query_builder->getQuery();
         
         $result = $model->db->mainQuery($query, [$index => $value])[0];
+
         if(!$result){
             return false;
         }
+
+        $result = $model->unmanageTypes($result);
         // print_r($result);
 
         $model->setFields($result);
@@ -90,6 +93,7 @@ class Model implements \ArrayAccess{
     }
     public function setFields($fields){
         $this->table_fields = $fields;
+        // $this->unmanageTypes();
         $this->table_old_fields = $fields;
     }
 
@@ -147,15 +151,22 @@ class Model implements \ArrayAccess{
     public function save(){
         $update_values = [];
 
-        foreach ($this->table_fields as $key => $value) {
+        // $this->manageTypes();
+        $fields = $this->manageTypes($this->table_fields);
+        $old_fields = $this->manageTypes($this->table_old_fields);
+        foreach ($fields as $key => $value) {
             # code...
-            if($value != $this->table_old_fields[$key]){
+            if($value != $old_fields[$key]){
                 $update_values[$key] = $value;
             }
         }
+
+        // $this->unmanageTypes();
+
         if(count($update_values) == 0){
             return $this;
         }
+
         $index = $this->table_index;
         $index_val = $this->table_old_fields[$index];
         $query_builder = new QueryBuilder();
@@ -173,12 +184,51 @@ class Model implements \ArrayAccess{
 
         foreach ($this->table_fields as $key => $value) {
             # code...
-            if($value != $this->table_old_fields[$key]){
+            if($fields[$key] != $old_fields[$key]){
                 $this->table_old_fields[$key] = $value;
             }
         }
         return $this;
         // print_r($update_values);
+    }
+    public function manageTypes($fields){
+        foreach($fields as $key => $field){
+            if(isset($this->table_scheme) && isset($this->table_scheme[$key])){
+                if(!is_array($this->table_scheme[$key])){
+                    $this->table_scheme[$key] = [$this->table_scheme[$key]];
+                }
+
+                foreach ($this->table_scheme[$key] as $type) {
+                    switch ($type) {
+                        case 'json':
+                            $fields[$key] = json_encode($fields[$key], true);
+                            break;
+                    }
+                }
+            }
+        }
+
+        return $fields;
+    }
+
+    public function unmanageTypes($fields){
+        foreach($fields as $key => $field){
+            if(isset($this->table_scheme) && isset($this->table_scheme[$key])){
+                if(!is_array($this->table_scheme[$key])){
+                    $this->table_scheme[$key] = [$this->table_scheme[$key]];
+                }
+
+                foreach ($this->table_scheme[$key] as $type) {
+                    switch ($type) {
+                        case 'json':
+                            $fields[$key] = json_decode($fields[$key], true);
+                            break;
+                    }
+                }
+            }
+        }
+
+        return $fields;
     }
     public static function where($values, $order_by = []){
         $model = self::getInstance();
@@ -187,6 +237,7 @@ class Model implements \ArrayAccess{
         $query_builder->buildSelect($model->table_name);
         $query_builder->addWhere($values);
         $query_builder->orderBy($order_by);
+
         $query = $query_builder->getQuery();
 
         $result = $model->db->mainQuery($query, $values);
@@ -197,9 +248,11 @@ class Model implements \ArrayAccess{
         foreach( $result as $row){
             $model_instance = static::getInstance();
 
+            $row = $model_instance->unmanageTypes($row);
             $model_instance->setFields($row);
             $model_array[] = $model_instance;
         }
         return $model_array;
     }
+
 }
