@@ -70,11 +70,8 @@ class Model implements \ArrayAccess{
         }
 
         $query_builder = new QueryBuilder();
-        // echo "class = ".get_class($model)."\n";
-        // echo "table = $model->table_name \n";
         $query_builder->buildSelect($model->table_name);
         $query_builder->addWhere([$index => $value]);
-        // echo "index = $index";
         $query = $query_builder->getQuery();
         
         $result = $model->db->mainQuery($query, [$index => $value])[0];
@@ -84,16 +81,13 @@ class Model implements \ArrayAccess{
         }
 
         $result = $model->unmanageTypes($result);
-        // print_r($result);
 
         $model->setFields($result);
-        // $model->table_old_fields = $result;
 
         return $model;
     }
     public function setFields($fields){
         $this->table_fields = $fields;
-        // $this->unmanageTypes();
         $this->table_old_fields = $fields;
     }
 
@@ -115,12 +109,10 @@ class Model implements \ArrayAccess{
         $model = static::find($last_id);
         
         return $model;
-        // print_r($query);
     }
 
     public function __get($name) 
     {
-        // echo "trying to get field `$name`";
         if(array_key_exists($name, $this->table_fields)){
             return $this->table_fields[$name];
         } else {
@@ -151,7 +143,6 @@ class Model implements \ArrayAccess{
     public function save(){
         $update_values = [];
 
-        // $this->manageTypes();
         $fields = $this->manageTypes($this->table_fields);
         $old_fields = $this->manageTypes($this->table_old_fields);
         foreach ($fields as $key => $value) {
@@ -160,8 +151,6 @@ class Model implements \ArrayAccess{
                 $update_values[$key] = $value;
             }
         }
-
-        // $this->unmanageTypes();
 
         if(count($update_values) == 0){
             return $this;
@@ -176,20 +165,16 @@ class Model implements \ArrayAccess{
         $query_builder->addWhere([ $index => $index_val]);
         $query = $query_builder->getQuery();
 
-        // print_r($query);
 
         $update_values[$index] = $index_val;
-        // print_r($update_values);
         $result = $this->db->mainQuery($query, $update_values);
 
         foreach ($this->table_fields as $key => $value) {
-            # code...
             if($fields[$key] != $old_fields[$key]){
                 $this->table_old_fields[$key] = $value;
             }
         }
         return $this;
-        // print_r($update_values);
     }
     public function manageTypes($fields){
         foreach($fields as $key => $field){
