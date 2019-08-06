@@ -116,19 +116,25 @@ class Router{
             }
             $controller = $first_match['controller'];
             $Ctrl = new $controller;
+            $result_text = "";
+            
             if(isset($first_match['function']) && method_exists($Ctrl, $first_match['function'])){
                 $function = $first_match['function'];
                 if(empty($first_match['params'])){
-                    $Ctrl->$function();
+                    $result_text = $Ctrl->$function();
                 } else {
                     $params = $first_match['params'];
                     //print_d(...$params);
-                    $Ctrl->$function(...$params);
+                    $result_text = $Ctrl->$function(...$params);
                 }
             } else if(!isset($first_match['function'])) {
-                $Ctrl->index();
+                $result_text = $Ctrl->index();
             } else {
                 print_r("Method {$first_match['function']} not exists");
+            }
+
+            if(!empty($result_text)){
+                echo $result_text;
             }
         }
     }
