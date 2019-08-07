@@ -75,7 +75,7 @@ class Router{
                     unset($mathes[$i]);
                 }
                 $best_math = $route;
-                $best_math['params'] = array_values($mathes);
+                $best_math['params'] = array_values((array)$mathes);
                 return $best_math;
             }
         }

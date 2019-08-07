@@ -74,7 +74,7 @@ class Model implements \ArrayAccess{
         $query_builder->addWhere([$index => $value]);
         $query = $query_builder->getQuery();
         
-        $result = $model->db->mainQuery($query, [$index => $value])[0];
+        $result = $model->db->mainQuery($query->last_query, [$index => $value])[0];
 
         if(!$result){
             return false;
@@ -102,7 +102,7 @@ class Model implements \ArrayAccess{
 
         $query_builder->addInsertFields(array_keys($values));
         $query = $query_builder->getQuery();
-        $result = $model->db->mainQuery($query, $values);
+        $result = $model->db->mainQuery($query->last_query, $values);
         
         $last_id = $model->db->getLastInsertId($model->table_name, $model->table_index);
 
@@ -135,7 +135,7 @@ class Model implements \ArrayAccess{
 
         $query = $query_builder->getQuery();
 
-        $result = $model->db->mainQuery($query, $where);
+        $result = $model->db->mainQuery($query->last_query, $where);
 
         return $result[0]['count'];
     }
@@ -167,7 +167,7 @@ class Model implements \ArrayAccess{
 
 
         $update_values[$index] = $index_val;
-        $result = $this->db->mainQuery($query, $update_values);
+        $result = $this->db->mainQuery($query->last_query, $update_values);
 
         foreach ($this->table_fields as $key => $value) {
             if($fields[$key] != $old_fields[$key]){
@@ -215,17 +215,24 @@ class Model implements \ArrayAccess{
 
         return $fields;
     }
-    public static function where($values, $order_by = []){
+    public static function where($values, $order_by = [], $fields = "*", $return_query = false){
+        
         $model = self::getInstance();
         $query_builder = new QueryBuilder();
 
-        $query_builder->buildSelect($model->table_name);
+        $query_builder->buildSelect($model->table_name, $fields);
         $query_builder->addWhere($values);
         $query_builder->orderBy($order_by);
 
         $query = $query_builder->getQuery();
+        if(!empty($query->additional_values)){
+            $values =  $query->additional_values +$values;
+        }
+        if($return_query){
 
-        $result = $model->db->mainQuery($query, $values);
+            return $query;
+        }
+        $result = $model->db->mainQuery($query->last_query, $values);
         $model_array = [];
         if(!is_array($result)){
             $result = [];
@@ -237,6 +244,7 @@ class Model implements \ArrayAccess{
             $model_instance->setFields($row);
             $model_array[] = $model_instance;
         }
+        // print_g($model_array);
         return $model_array;
     }
 

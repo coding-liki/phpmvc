@@ -56,7 +56,7 @@ class ModelCreator{
         
         $query = $query_builder->getQuery();
 
-        $result = $this->db->mainQuery($query, $values);
+        $result = $this->db->mainQuery($query->last_query, $values);
         
         $model_template = file_get_contents(__DIR__."/model_template.tpl");
         
