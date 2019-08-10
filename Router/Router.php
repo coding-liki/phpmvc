@@ -10,7 +10,7 @@ class Router{
     protected $routes;
     protected $app;
     protected $uri;
-
+    public $json_array_return;
     /**
      * Конструктор принимает и нормализует конфиг
      * также выделяет строку запроса для парсинга от GET параметров
@@ -18,14 +18,14 @@ class Router{
      * @param [type] $app
      * @param array $routes
      */
-    function __construct($routes = []){
+    function __construct($routes = [], $json_array_return = true){
         $uri = explode("?", $_SERVER['REQUEST_URI'])[0];
         
         if ($uri[strlen($uri)-1] == '/' && $uri != '/') {
             $uri = substr($uri, 0, strlen($uri)-1);
         }
         $this->routes = $routes;
-
+        $this->json_array_return = $json_array_return;
         // $this->app = App::$first_app;
         $this->uri = $uri;
         $this->normalizeRoutes();
@@ -133,8 +133,16 @@ class Router{
                 print_r("Method {$first_match['function']} not exists");
             }
 
+            $responce_array_as_json = $this->json_array_return;
+            if(isset($first_match['responce_array_as_json'])){
+                $responce_array_as_json = $responce_array_as_json && $first_match['responce_array_as_json'];
+            }
             if(!empty($result_text)){
-                echo $result_text;
+                if(is_array($result_text) && $responce_array_as_json){
+                    echo json_encode($result_text);
+                } else{
+                    echo $result_text;
+                }
             }
         }
     }
