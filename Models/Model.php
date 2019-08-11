@@ -10,7 +10,7 @@ class Model implements \ArrayAccess{
     public $db = null;
     protected static $db_name = "main"; 
     protected static $model_instance = null;
-    
+    protected static $limit = null;
     protected $table_name = "";
     protected $table_fields = [];
     protected $table_old_fields = [];
@@ -51,7 +51,9 @@ class Model implements \ArrayAccess{
         } else {
         }
     }
-
+    public static function all(){
+        return self::where([]);
+    }
     public function orderBy($fields){
         $this->order_by = $fields;
     }
@@ -215,6 +217,9 @@ class Model implements \ArrayAccess{
 
         return $fields;
     }
+    public static function limit($limit){
+        self::$limit = intval($limit);
+    }
     public static function where($values, $order_by = [], $fields = "*", $return_query = false){
         
         $model = self::getInstance();
@@ -223,6 +228,11 @@ class Model implements \ArrayAccess{
         $query_builder->buildSelect($model->table_name, $fields);
         $query_builder->addWhere($values);
         $query_builder->orderBy($order_by);
+
+        if(self::$limit){
+            $query_builder->addLimit(self::$limit);
+            self::$limit = null;
+        }
 
         $query = $query_builder->getQuery();
         if(!empty($query->additional_values)){

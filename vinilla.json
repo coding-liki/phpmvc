@@ -1,7 +1,10 @@
 {
-    "vendor": "CodingLiki",
-    "version": "0.1",
-    "depends_on": [
+    "name":"PhpMvc",
+    "vendor":"CodingLiki",
+    "description":"Экспериментальный MVC фреймворк на базе своих наработок",
+    "version":"0.1",
+    "repo_url":"https://github.com/coding-liki/phpmvc.git",
+    "depends_on":[
         "CodingLiki/Autoloader",
         "CodingLiki/Db",
         "CodingLiki/Configs",
