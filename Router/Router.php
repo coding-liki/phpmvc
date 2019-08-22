@@ -7,10 +7,11 @@ namespace CodingLiki\PhpMvc\Router;
  */
 class Router{
 
-    protected $routes;
+    protected $routes = [];
     protected $app;
     protected $uri;
-    public $json_array_return;
+    protected $middlewares = [];
+    public $json_array_return = false;
     /**
      * Конструктор принимает и нормализует конфиг
      * также выделяет строку запроса для парсинга от GET параметров
@@ -18,14 +19,33 @@ class Router{
      * @param [type] $app
      * @param array $routes
      */
-    function __construct($routes = [], $json_array_return = true){
+    function __construct($routes = []){
         $uri = explode("?", $_SERVER['REQUEST_URI'])[0];
         
         if ($uri[strlen($uri)-1] == '/' && $uri != '/') {
             $uri = substr($uri, 0, strlen($uri)-1);
         }
-        $this->routes = $routes;
-        $this->json_array_return = $json_array_return;
+
+        $two_steps = false; // Флаг вложенности массива путей в routes
+        
+        /** Сохраняем прослойки */
+        if(isset($routes['middlewares'])){
+            $this->middlewares = $routes['middlewares'];
+            $two_steps = true;     
+        }
+        
+        /** Сохраняем режим отображения результата массива в json */
+        if(isset($routes['json_array_return'])){
+            $this->json_array_return = $routes['json_array_return'];
+            $two_steps = true;     
+        }
+
+        if($two_steps){
+            $this->routes = $routes['routes'];
+        } else {
+            $this->routes = $routes;
+        }
+        // $this->json_array_return = $json_array_return;
         // $this->app = App::$first_app;
         $this->uri = $uri;
         $this->normalizeRoutes();
@@ -97,29 +117,35 @@ class Router{
 
     public function processFirstRoute(){
         $first_match = $this->checkRoutes();
+        $process_result = [ 'found' => false];
 
         if(empty($first_match)){
-            $Ctrl = new \Controllers\Error404;
+            return $process_result;
         } else {
             $this->checkMiddlewares($first_match);
-            
+
             if(!isset($first_match['controller'])){
                 $mass = explode('@', $first_match[1]);
                 $ctrl = $mass[0];
+                
                 if(isset($mass[1])){
                     $func = $mass[1];
                 }
+                
                 $first_match['controller'] = $ctrl;
+                
                 if(!isset($first_match['function']) && isset($func)){
                     $first_match['function'] = $func;
                 }
             }
+            
             $controller = $first_match['controller'];
             $Ctrl = new $controller;
             $result_text = "";
             
             if(isset($first_match['function']) && method_exists($Ctrl, $first_match['function'])){
                 $function = $first_match['function'];
+                
                 if(empty($first_match['params'])){
                     $result_text = $Ctrl->$function();
                 } else {
@@ -130,23 +156,50 @@ class Router{
             } else if(!isset($first_match['function'])) {
                 $result_text = $Ctrl->index();
             } else {
-                print_r("Method {$first_match['function']} not exists");
+                //TODO: Добавить Вызов Exception
+                // print_r("Method {$first_match['function']} not exists");
             }
 
             $responce_array_as_json = $this->json_array_return;
-            if(isset($first_match['responce_array_as_json'])){
-                $responce_array_as_json = $responce_array_as_json && $first_match['responce_array_as_json'];
+            
+            if(isset($first_match['json_array_return'])){
+                $responce_array_as_json = $responce_array_as_json || $first_match['json_array_return'];
             }
+            
             if(!empty($result_text)){
                 if(is_array($result_text) && $responce_array_as_json){
-                    echo json_encode($result_text);
+                    $process_result['result_text'] = json_encode($result_text); 
                 } else{
-                    echo $result_text;
+                    $process_result['result_text'] = $result_text;
                 }
             }
+            
+            $process_result['found'] = true;
+            return $process_result;
         }
     }
 
+    public static function processRoutes($routes_mass){
+        $found = false;
+        foreach($routes_mass as $router){
+            /**
+             * @var Router $router
+             */
+            $result = $router->processFirstRoute();
+            if($result['found']){
+                if(isset($result['result_text'])){
+                    echo $result['result_text'];
+                }
+                $found = true;
+                break;
+            }
+        }
+
+        if (!$found) {
+            $Ctrl = new \Controllers\Error404;
+            $Ctrl->index();
+        }
+    }
     /**
      * Проверяем и запускаем все прослойки до запуска контроллера
      *
@@ -154,7 +207,7 @@ class Router{
      * @return void
      */
     protected function checkMiddlewares($first_match){
-        $middlewares = null;
+        $middlewares = [];
 
         // print_r($first_match);
         if(isset($first_match['middlewares'])){
@@ -162,16 +215,15 @@ class Router{
         } else if(count($first_match) > 2 && isset($first_match[2])){
             $middlewares = $first_match[2];
         }
-
-        /** На нет и суда нет */
-        if(is_null($middlewares)){
-            return;
-        }
-
         /** мы работаем с массивом!!! */
         if(!is_array($middlewares)){
             $middlewares = [$middlewares];
         }
+
+        $middlewares = $middlewares + $this->middlewares;
+        
+
+        
 
         foreach($middlewares as $middleware){
             $m = new $middleware();
