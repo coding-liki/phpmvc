@@ -15,7 +15,9 @@ class Model implements \ArrayAccess{
     protected $table_fields = [];
     protected $table_old_fields = [];
     protected $order_by = [];
-
+    protected $times = false;
+    protected $updated_at_field = "updated_at";
+    protected $created_at_field = "created_at";
     public $table_index = "id";
     public $types_unmanaged = false;
     public function offsetExists($name) {
@@ -42,10 +44,7 @@ class Model implements \ArrayAccess{
 
     public function __construct($db_config)
     {
-        // echo "before getDB\nwith config($db_config)\n";
         $db = DbFactory::getDbObject($db_config);
-        // print_r($db);
-        // echo "class is ".get_class($this)."\n";
         if ($db) {
             $this->db = $db;
         } else {
@@ -102,6 +101,9 @@ class Model implements \ArrayAccess{
 
         $query_builder->buildInsert($model->table_name);
 
+        if($model->times){
+            $values[$model->created_at_field] = time();
+        }
         $query_builder->addInsertFields(array_keys($values));
         $query = $query_builder->getQuery();
         $result = $model->db->mainQuery($query->last_query, $values);
@@ -148,7 +150,6 @@ class Model implements \ArrayAccess{
         $fields = $this->manageTypes($this->table_fields);
         $old_fields = $this->manageTypes($this->table_old_fields);
         foreach ($fields as $key => $value) {
-            # code...
             if($value != $old_fields[$key]){
                 $update_values[$key] = $value;
             }
@@ -158,6 +159,9 @@ class Model implements \ArrayAccess{
             return $this;
         }
 
+        if($this->times){
+            $update_values[$this->updated_at_field] = time();
+        }
         $index = $this->table_index;
         $index_val = $this->table_old_fields[$index];
         $query_builder = new QueryBuilder();
@@ -187,7 +191,12 @@ class Model implements \ArrayAccess{
 
                 foreach ($this->table_scheme[$key] as $type) {
                     switch ($type) {
+                        case 'bool':
+                        case 'boolean':
+                            $fields[$key] = ($fields[$key] === 'f' || $fields[$key] === 0 || $fields[$key] === false ) ? 0 : 1;
+                            break;
                         case 'json':
+                        case 'jsonb':
                             $fields[$key] = json_encode($fields[$key], true);
                             break;
                     }
@@ -207,7 +216,12 @@ class Model implements \ArrayAccess{
 
                 foreach ($this->table_scheme[$key] as $type) {
                     switch ($type) {
+                        case 'bool':
+                        case 'boolean':
+                            $fields[$key] = ($fields[$key] === 'f' || $fields[$key] === 0 || $fields[$key] === false ) ? false : true;
+                            break;
                         case 'json':
+                        case 'jsonb':
                             $fields[$key] = json_decode($fields[$key], true);
                             break;
                     }
@@ -239,9 +253,9 @@ class Model implements \ArrayAccess{
             $values =  $query->additional_values +$values;
         }
         if($return_query){
-
             return $query;
         }
+        
         $result = $model->db->mainQuery($query->last_query, $values);
         $model_array = [];
         if(!is_array($result)){
@@ -254,7 +268,6 @@ class Model implements \ArrayAccess{
             $model_instance->setFields($row);
             $model_array[] = $model_instance;
         }
-        // print_g($model_array);
         return $model_array;
     }
 

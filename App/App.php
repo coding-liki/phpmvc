@@ -56,7 +56,7 @@ class App{
 
         $middlewares = Config::config($middlewares_config);
         foreach($middlewares as $middleware){    
-            $class= $middleware['class'];
+            $class= $middleware['class'] ?? $middleware;
 
             /**
              * класс должен быть унаследован от Middleware
