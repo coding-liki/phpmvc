@@ -3,6 +3,7 @@
 $path = __DIR__."/../../../../index.php";
 
 $str = <<<PHP
+<?php
 use CodingLiki\PhpMvc\App\App;
 
 require_once "./vendor/CodingLiki/Autoloader/autoloader.php";
