@@ -9,5 +9,13 @@
         "CodingLiki/Db",
         "CodingLiki/Configs",
         "CodingLiki/View"
+    ],
+    "scripts": [
+        {
+            "name": "add_to_index.php"
+        },
+        {
+            "name": "copy_folders_and_files.php"
+        }
     ]
 }

@@ -1,0 +1,4 @@
+<?php
+
+$app_middlewares = [
+];
